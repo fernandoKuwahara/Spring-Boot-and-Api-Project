@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APS</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.3/jquery.min.js"></script>
+
+    <style>
+        body {
+            background-color: #e7e7e7;
+        }
+
+        .container {
+            background-color: white;
+            width: auto;
+            padding: 15px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            align-items: center;
+            border-radius: 12px;
+            border: 1px solid #dfdfdf;
+        }
+
+        .painel_informacoes {
+            width: auto;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .painel_info {
+            background-color: white;
+            width: 58rem;
+            max-width: 58rem;
+            padding: 10px;
+            border-radius: 12px;
+            border: 1px solid #dfdfdf;
+        }
+
+        .tabela_info {
+            padding: 10px;
+        }
+
+        .resumo {
+            padding: 10px;
+        }
+
+        .bt {
+            float: right;
+        }
+
+        .bar {
+            margin-bottom: 10px;
+        }
+
+        #painel_ar {
+            display: none;
+        }
+
+        #painel_atmosfera {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-light bg-light">
+            <h3> Do que você precisa? </h3>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label>Cidade: </label>
+                <input id="iptCidade" type="text" class="form-control" placeholder="Ex: São José dos Campos">
+            </div>
+            <div class="form-group col-md-6">
+                <label>Pesquisa: </label>
+                <select id="tpPesquisa" class="form-control">
+                    <option value="AB">Ambos</option>
+                    <option value="CA">Condição do Ar</option>
+                    <option value="CM">Condição Atmosférica</option>
+                </select>
+            </div>
+        </div>
+        <br>
+        <div class="form-row">
+            <div class="form-group col-md-12">
+                <button class="btn btn-primary bt" onclick="enviarInformações()" data-toggle="modal" data-target="#ExemploModalCentralizado">Pesquisar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="painel_informacoes">
+        <div class="painel_info" id="painel_ar">
+            <nav class="navbar navbar-light bar">
+                <h3> Informações do Ar: </h3>
+            </nav>
+            <div class="tabela_info">
+                <table class="table">
+                    <caption> Concentração de Poluentes - Medidas em: μg/m3</caption>
+                    <tbody>
+                        <tr>
+                            <td id="ipt_co">CO: </td>
+                            <td id="ipt_no">NO: </td>
+                            <td id="ipt_no2">NO2: </td>
+                        </tr>
+                        <tr>
+                            <td id="ipt_o3">O3: </td>
+                            <td id="ipt_os2">SO2: </td>
+                            <td id="ipt_pm25">PM2.5: </td>
+                        </tr>
+                        <tr>
+                            <td id="ipt_pm10">PM10: </td>
+                            <td id="ipt_nh3">NH3: </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="resumo">
+                <nav class="navbar navbar-light bar">
+                    <h3> Resultado: </h3>
+                </nav>
+                <p id="resultado_ar"></p>
+            </div>
+        </div>
+        <div class="painel_info" id="painel_atmosfera">
+            <nav class="navbar navbar-light bar">
+                <h3> Informações Atmosférica: </h3>
+            </nav>
+            <div class="tabela_info">
+                <table class="table">
+                    <caption> Condições atmosférica </caption>
+                    <tbody>
+                        <tr>
+                            <td id="ipt_condicao">Condições: </td>
+                            <td id="ipt_temperatura">Temperatura: </td>
+                            <td id="ipt_sensacao_termica">Sensação Térmica: </td>
+                        </tr>
+                        <tr>
+                            <td id="ipt_humidade">Humidade: </td>
+                            <td id="ipt_temperatura_max">Temperatura Max: </td>
+                            <td id="ipt_pressao_atmosferica">Pressão Atmosférica: </td>
+                        </tr>
+                        <tr>
+                            <td id="ipt_velocidade_do_vento">Velocidade do vento: </td>
+                            <td id="ipt_visibilidade">Visibilidade: </td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="resumo">
+                <nav class="navbar navbar-light bar">
+                    <h3> Resultado: </h3>
+                </nav>
+                <p id="resultado_meteorologia"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $('#myModal').on('shown.bs.modal', function () {
+            $('#myInput').trigger('focus')
+        });
+
+        let resposta = '';
+        let aqiText = "";
+        let infoText = "";
+
+        let condicao = '';
+        let resultadoMeteorologia = '';
+
+        const condicoesFavoraveis = {
+            temperatura: {
+                min: -5,
+                max: 50
+            },
+            umidade: {
+                min: 20,
+                max: 95
+            },
+            pressao: {
+                min: 960,
+                max: 1050
+            },
+            visibilidade: {
+                min: 3500
+            },
+            vento: {
+                maxVelocidade: 50
+            }
+        };
+
+        function resutadoMeteorologia(meteorologia) {
+            if ((meteorologia.wind.speed * 3.6) > condicoesFavoraveis.vento.maxVelocidade) {
+                condicao = 'Não Favorável';
+                resultadoMeteorologia = 'não é recomendado viver neste local, pois a velocidade do vento está acima do recomendado.';
+            } else if (meteorologia.main.pressure < condicoesFavoraveis.pressao.min || meteorologia.main.pressure > condicoesFavoraveis.pressao.max) {
+                condicao = 'Não Favorável';
+                if (meteorologia.main.pressure < condicoesFavoraveis.pressao.min) {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a pressão está abaixo do recomendado.';
+                } else {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a pressão está acima do recomendado.';
+                }
+            } else if (meteorologia.main.humidity < condicoesFavoraveis.umidade.min || meteorologia.main.humidity > condicoesFavoraveis.umidade.max) {
+                condicao = 'Não Favorável';
+                if (meteorologia.main.humidity < condicoesFavoraveis.umidade.min) {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a umidade está abaixo do recomendado.';
+                } else {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a umidade está acima do recomendado.';
+                }
+            } else if ((meteorologia.main.temp - 273) < condicoesFavoraveis.temperatura.min || (meteorologia.main.temp - 273) > condicoesFavoraveis.temperatura.max) {
+                condicao = 'Não Favorável';
+                if ((meteorologia.main.temp - 273) < condicoesFavoraveis.temperatura.min) {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a temperatura está abaixo do recomendado.';
+                } else {
+                    resultadoMeteorologia = 'não é recomendado viver neste local, pois a temperatura está acima do recomendado.';
+                }
+            } else if (meteorologia.visibility < condicoesFavoraveis.visibilidade.min) {
+                condicao = 'Não Favorável';
+                resultadoMeteorologia = 'não é recomendado viver neste local, pois a visibilidade está abaixo do recomendado.';
+            } else {
+                condicao = 'Favorável';
+                resultadoMeteorologia = 'é recomendado viver neste local, pois de acordo com a tabela de informações atmosférica, todos os valores estão de acordo com o recomendado.';
+            }
+        }
+
+        function resultadoAqi(aqi) {
+            switch(aqi) {
+                case 1:
+                    aqiText = "Boa";
+                    infoText = "é recomendado este local, pois sua concentração de poluentes é baixa";
+                    break;
+                case 2:
+                    aqiText = "Justa";
+                    infoText = "não é prejudicial para a maioria das pessoas, porém, para pessoas sensíveis, como crianças e idosos, pode haver uma ligeira irritação";
+                    break;
+                case 3:
+                    aqiText = "Moderada";
+                    infoText = "começa a se tornar prejudicial para a saúde de grupos sensíveis. Pode causar problemas respiratórios em pessoas com doenças pulmonares como asma";
+                    break;
+                case 4:
+                    aqiText = "Ruim";
+                    infoText = "não é recomendado este local, caso possua algum problema respiratório, pois pode causar problemas respiratórios em pessoas saudáveis e agravar doenças pulmonares preexistentes";
+                    break;
+                case 5:
+                    aqiText = "Muito Ruim";
+                    infoText = "é altamente prejudicial à saúde de todas as pessoas. Pode causar doenças respiratórias graves em pessoas saudáveis e agravar doenças pulmonares preexistentes";
+                    break;
+                default:
+                    aqiText = "Desconhecida";
+                    infoText = "não foi possível determinar a qualidade do ar com base nos dados fornecidos";
+                    break;
+                } 
+        }
+
+        function enviarInformações() {
+            let cidade = document.getElementById('iptCidade');
+            let pesquisa = document.getElementById('tpPesquisa').value;
+
+            if (cidade.value == '') {
+                cidade.focus();
+            } else {
+                let url = 'http://localhost:8080/api/carregarInformacoes/' + cidade.value + '/' + pesquisa;
+
+                let api = new XMLHttpRequest();
+                api.open('GET', url, true);
+                api.onload = function () {
+                    if (pesquisa == 'AB') {
+                        resposta = JSON.parse(api.responseText.substring(0, api.responseText.lastIndexOf(' %20 ')));
+
+                        document.getElementById('painel_ar').style.display = 'block';
+                        document.getElementById('painel_atmosfera').style.display = 'block';
+
+                        let aqi = '';
+
+                        document.getElementById('ipt_co').innerText = 'CO:';
+                        document.getElementById('ipt_no').innerText = 'NO:';
+                        document.getElementById('ipt_no2').innerText = 'NO2:';
+                        document.getElementById('ipt_o3').innerText = 'O3:';
+                        document.getElementById('ipt_os2').innerText = 'SO2:';
+                        document.getElementById('ipt_pm25').innerText = 'PM2.5:';
+                        document.getElementById('ipt_pm10').innerText = 'PM10:';
+                        document.getElementById('ipt_nh3').innerText = 'NH3:';
+
+                        document.getElementById('ipt_co').innerText += ' ' + resposta.list[0].components.co;
+                        document.getElementById('ipt_no').innerText += ' ' + resposta.list[0].components.no;
+                        document.getElementById('ipt_no2').innerText += ' ' + resposta.list[0].components.no2;
+                        document.getElementById('ipt_o3').innerText += ' ' + resposta.list[0].components.o3;
+                        document.getElementById('ipt_os2').innerText += ' ' + resposta.list[0].components.so2;
+                        document.getElementById('ipt_pm25').innerText += ' ' + resposta.list[0].components.pm2_5;
+                        document.getElementById('ipt_pm10').innerText += ' ' + resposta.list[0].components.pm10;
+                        document.getElementById('ipt_nh3').innerText += ' ' + resposta.list[0].components.nh3;
+
+                        aqi = resposta.list[0].main.aqi;
+
+                        resultadoAqi(aqi);
+
+                        let resultado = `De acordo com os valores apresentados na tabela de dados da concentração de poluentes, a situação da qualidade do Ar se encontra como ${aqiText}, e devido a isso ${infoText}.`;
+                        
+                        document.getElementById('resultado_ar').innerText = resultado;
+
+                        resposta = JSON.parse(api.responseText.substring(api.responseText.lastIndexOf(' %20 ') + 5));
+
+
+                        document.getElementById('ipt_condicao').innerText = 'Condições:';
+                        document.getElementById('ipt_temperatura').innerText = 'Temperatura:';
+                        document.getElementById('ipt_sensacao_termica').innerText = 'Sensação Térmica:';
+                        document.getElementById('ipt_humidade').innerText = 'Humidade:';
+                        document.getElementById('ipt_temperatura_max').innerText = 'Temperatura Max:';
+                        document.getElementById('ipt_pressao_atmosferica').innerText = 'Pressão Atmosférica:';
+                        document.getElementById('ipt_velocidade_do_vento').innerText = 'Velocidade do vento:';
+                        document.getElementById('ipt_visibilidade').innerText = 'Visibilidade:';
+
+                        document.getElementById('ipt_condicao').innerText += ' ' + resposta.weather[0].description[0].toUpperCase() + resposta.weather[0].description.substr(1);
+                        document.getElementById('ipt_temperatura').innerText += ' ' + (resposta.main.temp - 273).toFixed(1) + '°C';
+                        document.getElementById('ipt_sensacao_termica').innerText += ' ' + (resposta.main.feels_like - 273).toFixed(1) + '°C';;
+                        document.getElementById('ipt_humidade').innerText += ' ' + resposta.main.humidity + '%';
+                        document.getElementById('ipt_temperatura_max').innerText += ' ' + (resposta.main.temp_max - 273).toFixed(1) + '°C';
+                        document.getElementById('ipt_pressao_atmosferica').innerText += ' ' + resposta.main.pressure + ' hPa';
+                        document.getElementById('ipt_velocidade_do_vento').innerText += ' ' + (resposta.wind.speed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('ipt_visibilidade').innerText += ' ' + (resposta.visibility / 1000) + ' km';
+
+                        resutadoMeteorologia(resposta);
+
+                        resultado = `De acordo com os valores apresentados na tabela de dados das condições atmosféricas, a situação da condição da atmosfera se encontra ${condicao}, e devido a isso ${resultadoMeteorologia}`;
+
+                        document.getElementById('resultado_meteorologia').innerText = resultado;
+                    } else if (pesquisa == 'CA') {
+                        resposta = JSON.parse(api.responseText);
+
+                        document.getElementById('painel_ar').style.display = 'block';
+                        document.getElementById('painel_atmosfera').style.display = 'none';
+
+                        document.getElementById('ipt_condicao').innerText = 'Condições:';
+                        document.getElementById('ipt_temperatura').innerText = 'Temperatura:';
+                        document.getElementById('ipt_sensacao_termica').innerText = 'Sensação Térmica:';
+                        document.getElementById('ipt_humidade').innerText = 'Humidade:';
+                        document.getElementById('ipt_temperatura_max').innerText = 'Temperatura Max:';
+                        document.getElementById('ipt_pressao_atmosferica').innerText = 'Pressão Atmosférica:';
+                        document.getElementById('ipt_velocidade_do_vento').innerText = 'Velocidade do vento:';
+                        document.getElementById('ipt_visibilidade').innerText = 'Visibilidade:';
+
+                        document.getElementById('resultado_meteorologia').innerText = '';
+
+                        let aqi = '';
+
+                        document.getElementById('ipt_co').innerText = 'CO:';
+                        document.getElementById('ipt_no').innerText = 'NO:';
+                        document.getElementById('ipt_no2').innerText = 'NO2:';
+                        document.getElementById('ipt_o3').innerText = 'O3:';
+                        document.getElementById('ipt_os2').innerText = 'SO2:';
+                        document.getElementById('ipt_pm25').innerText = 'PM2.5:';
+                        document.getElementById('ipt_pm10').innerText = 'PM10:';
+                        document.getElementById('ipt_nh3').innerText = 'NH3:';
+
+                        document.getElementById('ipt_co').innerText += ' ' + resposta.list[0].components.co;
+                        document.getElementById('ipt_no').innerText += ' ' + resposta.list[0].components.no;
+                        document.getElementById('ipt_no2').innerText += ' ' + resposta.list[0].components.no2;
+                        document.getElementById('ipt_o3').innerText += ' ' + resposta.list[0].components.o3;
+                        document.getElementById('ipt_os2').innerText += ' ' + resposta.list[0].components.so2;
+                        document.getElementById('ipt_pm25').innerText += ' ' + resposta.list[0].components.pm2_5;
+                        document.getElementById('ipt_pm10').innerText += ' ' + resposta.list[0].components.pm10;
+                        document.getElementById('ipt_nh3').innerText += ' ' + resposta.list[0].components.nh3;
+
+                        aqi = resposta.list[0].main.aqi;
+
+                        resultadoAqi(aqi);
+
+                        let resultado = `De acordo com os valores apresentados na tabela de dados da concentração de poluentes, a situação da qualidade do Ar se encontra como ${aqiText}, e devido a isso ${infoText}.`;
+                        
+                        document.getElementById('resultado_ar').innerText = resultado;
+                    } else {
+                        resposta = JSON.parse(api.responseText);
+
+                        document.getElementById('painel_atmosfera').style.display = 'block';
+                        document.getElementById('painel_ar').style.display = 'none';
+
+                        document.getElementById('ipt_co').innerText = 'CO:';
+                        document.getElementById('ipt_no').innerText = 'NO:';
+                        document.getElementById('ipt_no2').innerText = 'NO2:';
+                        document.getElementById('ipt_o3').innerText = 'O3:';
+                        document.getElementById('ipt_os2').innerText = 'SO2:';
+                        document.getElementById('ipt_pm25').innerText = 'PM2.5:';
+                        document.getElementById('ipt_pm10').innerText = 'PM10:';
+                        document.getElementById('ipt_nh3').innerText = 'NH3:';
+
+                        document.getElementById('resultado_ar').innerText = '';
+
+                        let aqi = '';
+
+                        document.getElementById('ipt_condicao').innerText = 'Condições:';
+                        document.getElementById('ipt_temperatura').innerText = 'Temperatura:';
+                        document.getElementById('ipt_sensacao_termica').innerText = 'Sensação Térmica:';
+                        document.getElementById('ipt_humidade').innerText = 'Humidade:';
+                        document.getElementById('ipt_temperatura_max').innerText = 'Temperatura Max:';
+                        document.getElementById('ipt_pressao_atmosferica').innerText = 'Pressão Atmosférica:';
+                        document.getElementById('ipt_velocidade_do_vento').innerText = 'Velocidade do vento:';
+                        document.getElementById('ipt_visibilidade').innerText = 'Visibilidade:';
+
+                        document.getElementById('ipt_condicao').innerText += ' ' + resposta.weather[0].description[0].toUpperCase() + resposta.weather[0].description.substr(1);
+                        document.getElementById('ipt_temperatura').innerText += ' ' + (resposta.main.temp - 273).toFixed(1) + '°C';
+                        document.getElementById('ipt_sensacao_termica').innerText += ' ' + (resposta.main.feels_like - 273).toFixed(1) + '°C';;
+                        document.getElementById('ipt_humidade').innerText += ' ' + resposta.main.humidity + '%';
+                        document.getElementById('ipt_temperatura_max').innerText += ' ' + (resposta.main.temp_max - 273).toFixed(1) + '°C';
+                        document.getElementById('ipt_pressao_atmosferica').innerText += ' ' + resposta.main.pressure + ' hPa';
+                        document.getElementById('ipt_velocidade_do_vento').innerText += ' ' + (resposta.wind.speed * 3.6).toFixed(1) + ' km/h';
+                        document.getElementById('ipt_visibilidade').innerText += ' ' + (resposta.visibility / 1000) + ' km';
+
+                        resutadoMeteorologia(resposta);
+
+                        let resultado = `De acordo com os valores apresentados na tabela de dados das condições atmosféricas, a situação da condição da atmosfera se encontra ${condicao}, e devido a isso ${resultadoMeteorologia}`;
+
+                        document.getElementById('resultado_meteorologia').innerText = resultado;
+                    }
+                };
+                api.send(null);
+            }
+        }
+    </script>
+</body>
+</html>
